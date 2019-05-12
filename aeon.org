@@ -4,3 +4,22 @@
 
 * Rationale
   AEON is a literate config for emacs, built around modularity and ease of use.
+
+
+* Architecture
+  :PROPERTIES:
+  :header-args: :noweb no-export :tangle no
+  :END:
+  AEON follows a modular architecture, such that -- aside from some core configurations --
+  anything can be included or excluded as desired.
+
+  #+BEGIN_SRC emacs-lisp :tangle yes
+    <<core-emacs-configuration>>
+  #+END_SRC
+
+** Initialization
+*** Core Appearance and Usability
+    Right when emacs is first started, some basic configuration needs to be set.
+    That will help ensure that some of the core experience working with it is pleasant.
+    #+BEGIN_SRC emacs-lisp :noweb-ref core-emacs-configuration
+    #+END_SRC
