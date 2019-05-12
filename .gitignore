@@ -1,0 +1,13 @@
+# The tangled files from the config
+*.el
+## Emacs' core initialization file
+!init.el
+
+# Compiled Emacs Lisp
+*.elc
+
+# Emacs Autosave Files
+*~
+
+# Package files from straight.el
+straight/
