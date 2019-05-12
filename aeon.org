@@ -15,6 +15,7 @@
 
   #+BEGIN_SRC emacs-lisp :tangle yes
     <<core-emacs-configuration>>
+    <<load-bootstrap-packages>>
   #+END_SRC
 
 ** Initialization
@@ -78,3 +79,7 @@
              jit-lock-stealth-time 1
              jit-lock-stealth-verbose nil)
      #+END_SRC
+** Load Bootstrap Packages
+   AEON's module system is based on a few core things in order to have a well-defined syntax and layout. These packages are needed to properly get that rolling.
+   #+BEGIN_SRC emacs-lisp :noweb-ref load-bootstrap-packages
+   #+END_SRC
