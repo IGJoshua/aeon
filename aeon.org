@@ -24,6 +24,7 @@
     #+BEGIN_SRC emacs-lisp :noweb-ref core-emacs-configuration
       <<disable-unnecessary-default-features>>
       <<enable-utf8-support>>
+      <<configure-elisp-interpreter>>
 
       (setq user-full-name "Joshua Suskalo"
             user-mail-address "joshua@suskalo.org")
@@ -64,4 +65,16 @@
        (set-selection-coding-system 'utf-8)
        (prefer-coding-system 'utf-8)
        (setq default-process-coding-system '(utf-8-unix . utf-8-unix))
+     #+END_SRC
+**** Configure the Emacs Lisp Interpreter
+     The emacs lisp interpreter has many default settings which are out of date for modern computers.
+     The garbage collector doesn't need to be run as often as it currently is. The message
+     buffer can have a lot more messages in it, and cl features should be loaded.
+     #+BEGIN_SRC emacs-lisp :noweb-ref configure-elisp-interpreter
+       (require 'cl-lib)
+
+       (setq message-log-max 16384
+             gc-cons-threshold (* 50 1024 1024)
+             jit-lock-stealth-time 1
+             jit-lock-stealth-verbose nil)
      #+END_SRC
