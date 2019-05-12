@@ -82,4 +82,13 @@
 ** Load Bootstrap Packages
    AEON's module system is based on a few core things in order to have a well-defined syntax and layout. These packages are needed to properly get that rolling.
    #+BEGIN_SRC emacs-lisp :noweb-ref load-bootstrap-packages
+     <<use-package-configuration>>
    #+END_SRC
+*** Use-package Installation and Configuration
+    straight.el is the package manager used by AEON, but use-package provides a great interface to other package managers.
+
+    First AEON installs use-package, then we configure use-package to always use straight.el by default.
+    #+BEGIN_SRC emacs-lisp :noweb-ref use-package-configuration
+      (straight-use-package 'use-package)
+      (setq straight-use-package-by-default t)
+    #+END_SRC
