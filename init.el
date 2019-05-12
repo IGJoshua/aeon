@@ -20,6 +20,14 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
+;; Install and initialize org-mode
+(straight-use-package 'org)
+(straight-use-package 'org-plus-contrib)
+(require 'org)
+(setq org-confirm-babel-evaluate nil
+      org-src-fontify-natively t
+      org-src-tab-acts-natively t)
+
 ;; Disable the debugger now that the config has loaded
 (setq debug-on-error nil)
 (setq debug-on-quit nil)
