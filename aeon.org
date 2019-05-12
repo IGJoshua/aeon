@@ -22,4 +22,10 @@
     Right when emacs is first started, some basic configuration needs to be set.
     That will help ensure that some of the core experience working with it is pleasant.
     #+BEGIN_SRC emacs-lisp :noweb-ref core-emacs-configuration
+      (setq user-full-name "Joshua Suskalo"
+            user-mail-address "joshua@suskalo.org")
+
+      (global-font-lock-mode t)
+
+      (setq initial-scratch-message ";; Hello, world!")
     #+END_SRC
