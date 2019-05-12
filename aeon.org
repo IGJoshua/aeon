@@ -22,6 +22,8 @@
     Right when emacs is first started, some basic configuration needs to be set.
     That will help ensure that some of the core experience working with it is pleasant.
     #+BEGIN_SRC emacs-lisp :noweb-ref core-emacs-configuration
+      <<disable-unnecessary-default-features>>
+
       (setq user-full-name "Joshua Suskalo"
             user-mail-address "joshua@suskalo.org")
 
@@ -29,3 +31,24 @@
 
       (setq initial-scratch-message ";; Hello, world!")
     #+END_SRC
+**** Disable Unnecessary Features
+     Emacs comes filled with some features which are simply unneccessary for most people's workflows,
+     many of which are just plain ugly. All of these features are disabled here. If someone really wants
+     to use them, they can enable them again in their own config at a later date.
+     #+BEGIN_SRC emacs-lisp :noweb-ref disable-unnecessary-default-features
+       (when (functionp 'tool-bar-mode)
+         (tool-bar-mode -1))
+       (when (functionp 'menu-bar-mode)
+         (menu-bar-mode -1))
+       (when (functionp 'scroll-bar-mode)
+         (scroll-bar-mode -1))
+       (when (functionp 'mouse-wheel-mode)
+         (mouse-wheel-mode -1))
+       (when (functionp 'tooltip-mode)
+         (tooltip-mode -1))
+       (when (functionp 'blink-cursor-mode)
+         (blink-cursor-mode -1))
+
+       (setq ring-bell-function (lambda ())
+             inhibit-startup-screen t)
+     #+END_SRC
