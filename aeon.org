@@ -1,0 +1,6 @@
+#+TITLE:AEON (Another Emacs Operating eNvironment) Introduction and Initialization
+#+AUTHOR:Joshua Suskalo
+#+PROPERTY: header-args:emacs-lisp :session *emacs-config-session*
+
+* Rationale
+  AEON is a literate config for emacs, built around modularity and ease of use.
