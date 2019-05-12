@@ -23,6 +23,7 @@
     That will help ensure that some of the core experience working with it is pleasant.
     #+BEGIN_SRC emacs-lisp :noweb-ref core-emacs-configuration
       <<disable-unnecessary-default-features>>
+      <<enable-utf8-support>>
 
       (setq user-full-name "Joshua Suskalo"
             user-mail-address "joshua@suskalo.org")
@@ -51,4 +52,16 @@
 
        (setq ring-bell-function (lambda ())
              inhibit-startup-screen t)
+     #+END_SRC
+**** Enable UTF-8 Support
+     Emacs is a very old text editor, and doesn't come with UTF-8 support pre-enabled.
+     UTF-8 is rather important to modern file editing however, so it should be enabled by default.
+     #+BEGIN_SRC emacs-lisp :noweb-ref enable-utf8-support
+       (set-charset-priority 'unicode)
+       (set-default-coding-systems 'utf-8)
+       (set-terminal-coding-system 'utf-8)
+       (set-keyboard-coding-system 'utf-8)
+       (set-selection-coding-system 'utf-8)
+       (prefer-coding-system 'utf-8)
+       (setq default-process-coding-system '(utf-8-unix . utf-8-unix))
      #+END_SRC
