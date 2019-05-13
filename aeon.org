@@ -39,11 +39,11 @@ interact with those packages without modifying them.
 Packages are loaded with straight.el to allow for proper handling of installation and modifications
 of packages that become necessary, as well as configuration. A package can be declared as a depencency
 for multiple modules, and each module can define its own set of initialization and configuration steps.
-It is undefined behavior for multiple modules to configure the same thing twice, unless a configuration
-module is present which defines the interactions.
+It is undefined behavior for multiple modules to configure the same thing, unless a configuration
+module is present which overrides both.
 
 ** Configuration Modules
-Configuration Moduels are special modules which generally do not declare any package dependencies.
+Configuration Modules are special modules which generally do not declare any package dependencies.
 They however do declare dependencies on multiple modules, and upon being loaded will override any
 functionality which would have been conflicting between the two other modules. This allows for a single
 place to resolve conflicts between multiple configurations.
