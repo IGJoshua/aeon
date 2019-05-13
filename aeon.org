@@ -1,4 +1,4 @@
-#+TITLE:AEON (Another Emacs Operating eNvironment) Introduction and Initialization
+#+TITLE:AEON (Another Emacs Operating eNvironment)
 #+AUTHOR:Joshua Suskalo
 #+LANGUAGE: en
 #+STARTUP: align indent
