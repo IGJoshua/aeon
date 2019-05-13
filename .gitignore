@@ -2,6 +2,8 @@
 *.el
 ## Emacs' core initialization file
 !init.el
+## Directory-local Emacs Lisp files for the config
+!**/.dir-locals.el
 
 # Compiled Emacs Lisp
 *.elc
