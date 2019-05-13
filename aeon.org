@@ -14,11 +14,18 @@
   anything can be included or excluded as desired.
 
   #+BEGIN_SRC emacs-lisp :tangle yes
-    <<core-emacs-configuration>>
-    <<load-bootstrap-packages>>
+    <<bootstrap-aeon>>
+    <<load-emacs-custom-file>>
   #+END_SRC
 
 ** Initialization
+   When initializing AEON for bootstrapping, we need to manage some of the core features of emacs,
+   load the package manager which will be used throughought the rest of the configuration.
+
+   #+BEGIN_SRC emacs-lisp :noweb-ref bootstrap-aeon
+     <<core-emacs-configuration>>
+     <<load-bootstrap-packages>>
+   #+END_SRC
 *** Core Appearance and Usability
     Right when emacs is first started, some basic configuration needs to be set.
     That will help ensure that some of the core experience working with it is pleasant.
@@ -30,9 +37,10 @@
       (setq user-full-name "Joshua Suskalo"
             user-mail-address "joshua@suskalo.org")
 
+      ;; Enable syntax highlighting in all buffers
       (global-font-lock-mode t)
 
-      (setq initial-scratch-message ";; Hello, world!")
+      (setq initial-scratch-message ";; Hello, world!\n")
     #+END_SRC
 **** Disable Unnecessary Features
      Emacs comes filled with some features which are simply unneccessary for most people's workflows,
@@ -45,6 +53,8 @@
          (menu-bar-mode -1))
        (when (functionp 'scroll-bar-mode)
          (scroll-bar-mode -1))
+       (when (functionp 'horizontal-scroll-bar-mode)
+         (horizontal-scroll-bar-mode -1))
        (when (functionp 'mouse-wheel-mode)
          (mouse-wheel-mode -1))
        (when (functionp 'tooltip-mode)
@@ -53,7 +63,8 @@
          (blink-cursor-mode -1))
 
        (setq ring-bell-function (lambda ())
-             inhibit-startup-screen t)
+             inhibit-startup-screen t
+             frame-resize-pixelwise t)
      #+END_SRC
 **** Enable UTF-8 Support
      Emacs is a very old text editor, and doesn't come with UTF-8 support pre-enabled.
@@ -79,16 +90,28 @@
              jit-lock-stealth-time 1
              jit-lock-stealth-verbose nil)
      #+END_SRC
-** Load Bootstrap Packages
-   AEON's module system is based on a few core things in order to have a well-defined syntax and layout. These packages are needed to properly get that rolling.
-   #+BEGIN_SRC emacs-lisp :noweb-ref load-bootstrap-packages
-     <<use-package-configuration>>
-   #+END_SRC
-*** Use-package Installation and Configuration
-    straight.el is the package manager used by AEON, but use-package provides a great interface to other package managers.
-
-    First AEON installs use-package, then we configure use-package to always use straight.el by default.
-    #+BEGIN_SRC emacs-lisp :noweb-ref use-package-configuration
-      (straight-use-package 'use-package)
-      (setq straight-use-package-by-default t)
+*** Load Bootstrap Packages
+    AEON's module system is based on a few core things in order to have a well-defined syntax and layout. These packages are needed to properly get that rolling.
+    #+BEGIN_SRC emacs-lisp :noweb-ref load-bootstrap-packages
+      <<use-package-configuration>>
     #+END_SRC
+**** Use-package Installation and Configuration
+     straight.el is the package manager used by AEON, but use-package provides a great interface to other package managers.
+
+     First AEON installs use-package, then we configure use-package to always use straight.el by default.
+     #+BEGIN_SRC emacs-lisp :noweb-ref use-package-configuration
+       (straight-use-package 'use-package)
+       (setq straight-use-package-by-default t)
+     #+END_SRC
+** Load Emacs Custom File
+   Emacs includes a way to customize large portions of the behaviors that come default from within itself,
+   handled from within the custom file. Any changes that the user makes through the customize interface will
+   be saved to the custom file, and the configuration has the option to load that file. Emacs' default behavior
+   is to append all custom information to the end of the init.el file, however since this is a literate config,
+   that is less than desireable. Instead we will set a specific file to be used, and load it if it exists.
+   #+BEGIN_SRC emacs-lisp :noweb-ref load-emacs-custom-file
+     (setq custom-file (expand-file-name ".custom.el" user-emacs-directory))
+
+     (when (file-exists-p custom-file)
+       (load-file custom-file))
+   #+END_SRC
