@@ -111,9 +111,8 @@ In order to bootstrap AEON fully, we need the package manager fully configured.
 A small amount of configuration happens before this config is loaded, in which
 straight.el is installed and then is used to get the latest version of org,
 which is then used to load this config. However, throughout the rest of this
-config and in any modules, the desired interface is to use use-package, so that
-will be loaded first, to make loading the other packages for bootstrapping
-consistent.
+config and in any modules, the desired interface is use-package, so that will be
+loaded first, to make loading the other packages for bootstrapping consistent.
 
 #+BEGIN_SRC emacs-lisp :noweb-ref load-bootstrap-packages
   <<use-package-configuration>>
