@@ -23,7 +23,10 @@ emacs.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   <<bootstrap-aeon>>
+  <<aeon-utility-functions>>
+
   <<bootstrap-module-loading>>
+
   <<load-emacs-custom-file>>
 #+END_SRC
 
@@ -158,10 +161,9 @@ conflicting between the two other modules. This allows for a single place to
 resolve conflicts between multiple configurations.
 
 ** Loading Modules
-For now, loading a module is a simple task, because the module format hasn't
-been defined yet. That means right now the only tasks which must take place are
-to find the module, tangle the org file, compile the elisp, and load the
-compiled files.
+Module loading is done through the function ~aeon/load-module~, and can be
+performed either through code, or interactively. First the code for the module
+is loaded, and then the initialization step occurs.
 
 #+BEGIN_SRC emacs-lisp :noweb-ref bootstrap-module-loading
   (defun aeon/load-module (module-name)
@@ -170,10 +172,21 @@ compiled files.
   This includes checking if there has been an update to the org files since the last time
   the elisp had been tangled, tangling it if so, compiling it, and then loading it."
     (interactive "sName of the module you wish to load: ")
-    (let ((module-directory
-           <<get-module-directory>>
-           ))
-      (if (file-directory-p module-directory)
+    <<load-module>>
+    <<initialize-module>>)
+#+END_SRC
+
+*** Load the Module
+For now, loading a module is a simple task, because the module format hasn't
+been defined yet. That means right now the only tasks which must take place are
+to find the module, tangle the org file, compile the elisp, and load the
+compiled files.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref load-module
+  (let ((module-directory
+         <<get-module-directory>>
+         ))
+    (if (file-directory-p module-directory)
         (let ((elisp-files (directory-files-recursively module-directory
                                                         ".*\\.elc$"))
 
@@ -183,10 +196,10 @@ compiled files.
               (message "No files found in the module. Time to write some code!")
             <<tangle-and-load-module-elisp>>
             ))
-        (message "Not a valid module name."))))
+      (message "Not a valid module name.")))
 #+END_SRC
 
-*** Get the Module's Directory
+**** Get the Module's Directory
 The directory for a module is generated as a concatonation of the user's emacs
 directory, the name for the module directory, and the name of the module which
 is being loaded. Together, that may look something like so:
@@ -200,7 +213,7 @@ is being loaded. Together, that may look something like so:
                "/")
 #+END_SRC
 
-*** Load the Module's Emacs Lisp Code
+**** Load the Module's Emacs Lisp Code
 Once a module's files have been found, we need to load them. To do so, we first
 need to tangle the elisp and compile them into =.elc= files, and then we load
 them.
@@ -212,7 +225,7 @@ them.
     )
 #+END_SRC
 
-**** Tangle Emacs Lisp Files
+***** Tangle Emacs Lisp Files
 When we tangle the elisp files and compile them to =.elc= files, it can be
 somewhat resource intensive. Instead of always performing that step, we can
 check to see if the org files have more recent changes than the compiled lisp,
@@ -227,7 +240,7 @@ pretend that we compiled them, and push the old elisp into the list.
     )
 #+END_SRC
 
-***** Checking if Org files are newer than their matching Emacs Lisp
+****** Checking if Org files are newer than their matching Emacs Lisp
 To check if the org files are newer, we make use of the CL library for emacs,
 which allows us the use of the excellent ~some~ function. For each org file, it
 checks to see if there exists an emacs lisp file which is newer than itself. If
@@ -243,7 +256,7 @@ so, the whole thing short-circuits and returns ~t~.
            org-files)
 #+END_SRC
 
-***** Tangling and Compiling the Org Files
+****** Tangling and Compiling the Org Files
 To tangle and compile the org files, we loop through each org file and call the
 elisp function ~org-babel-tangle-file~ on it. That will return a list of the
 emacs lisp files which have been tangled from it. We then loop over each file
@@ -256,11 +269,10 @@ compiling them.
   (dolist (org-file org-files)
     (dolist (elisp-file (org-babel-tangle-file org-file))
       (byte-compile-file elisp-file)
-      (push (string-join (list elisp-file "c")) elc-files)
-      (delete-file elisp-file)))
+      (push (string-join (list elisp-file "c")) elc-files)))
 #+END_SRC
 
-***** Push Existing Emacs Lisp Files to ~elc-files~
+****** Push Existing Emacs Lisp Files to ~elc-files~
 If the elisp files are newer than the org ones, they don't need to be
 re-compiled, so as a result we just add the already-existing elisp files to the
 list.
@@ -270,7 +282,7 @@ list.
     (push file elc-files))
 #+END_SRC
 
-**** Load Emacs Lisp Files
+***** Load Emacs Lisp Files
 Once all the files have been pushed into the list, we can go through each of
 them and load them into emacs.
 
@@ -279,6 +291,42 @@ them and load them into emacs.
     (load-file elc-file))
 #+END_SRC
 
+*** Initialize the Module
+Modules are defined with three special functions: ~init~, ~package~, and
+~config~. These functions are called in order on module load, with ~init~ taking
+place before any packages are loaded, ~package~ performing all the ~use-package~
+calls, and ~config~ going back and configuring each package. If any of these
+functions doesn't exist, they are simply skipped.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref initialize-module
+  (let ((init (symbol-function
+               (aeon/module-qualified-symbol module-name "init")))
+        (package (symbol-function
+                  (aeon/module-qualified-symbol module-name "package")))
+        (config (symbol-function
+                 (aeon/module-qualified-symbol module-name "config"))))
+    (when init
+      (funcall init))
+    (when package
+      (funcall package))
+    (when config
+      (funcall config)))
+#+END_SRC
+
+**** Module-Qualified Symbols
+Any symbols which are specific to a particular module, and are not from a
+package, should follow the module symbol convention, namely to be of the form
+~module-name/symbol~. This is already followed with AEON's core module, ~aeon~,
+and it helps prevent any naming collisions which might take place in future. If
+you have a string which you want to turn into a qualified symbol, you call
+~aeon/module-qualified-symbol~ which returns the interned symbol.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref aeon-utility-functions
+  (defun aeon/module-qualified-symbol (module sym)
+    "Returns an interned symbol following the naming convention
+    module-name/symbol for the given module"
+    (intern (string-join (list module sym) "/")))
+#+END_SRC
 
 
 * Load Emacs Custom File
