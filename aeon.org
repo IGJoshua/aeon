@@ -2,7 +2,7 @@
 #+AUTHOR:Joshua Suskalo
 #+EMAIL:joshua@suskalo.org
 #+LANGUAGE: en
-#+STARTUP: align indent
+#+STARTUP: align indent hidestars
 
 * Introduction
 :PROPERTIES:
@@ -18,14 +18,18 @@ adding vim emulation and bindings.
 
 We start with bootstrapping the package manager and some core emacs settings
 which are used throughout the config, and then from there initialize the module
-systems, before finally allowing user customizations to persist between runs of
-emacs.
+systems, load in configuration and modules requested by the user, before finally
+allowing user customizations to persist between runs of emacs.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   <<bootstrap-aeon>>
   <<aeon-utility-functions>>
 
   <<bootstrap-module-loading>>
+
+  <<load-required-modules>>
+
+  <<load-user-config>>
 
   <<load-emacs-custom-file>>
 #+END_SRC
@@ -165,6 +169,10 @@ Module loading is done through the function ~aeon/load-module~, and can be
 performed either through code, or interactively. First the code for the module
 is loaded, and then the initialization step occurs.
 
+If multiple modules are to be loaded at once, a single call to
+~aeon/load-modules~ works as well, although because this function takes a list
+it cannot be used interactively.
+
 #+BEGIN_SRC emacs-lisp :noweb-ref bootstrap-module-loading
   (defun aeon/load-module (module-name)
     "Loads a module of the given name from \"emacs-home/modules/module-name/\".
@@ -173,7 +181,13 @@ is loaded, and then the initialization step occurs.
   the elisp had been tangled, tangling it if so, compiling it, and then loading it."
     (interactive "sName of the module you wish to load: ")
     <<load-module>>
-    <<initialize-module>>)
+    <<initialize-module>>
+    )
+
+  (defun aeon/load-modules (module-names)
+    "Loads a list of modules using aeon/load-module"
+    (dolist (module-name module-names)
+      (aeon/load-module module-name)))
 #+END_SRC
 
 *** Load the Module
@@ -208,7 +222,9 @@ is being loaded. Together, that may look something like so:
 #+BEGIN_SRC emacs-lisp :noweb-ref get-module-directory
   (string-join (list user-emacs-directory
                      "modules"
-                     module-name
+                     (if (symbolp module-name)
+                         (symbol-name module-name)
+                       module-name)
                      "")
                "/")
 #+END_SRC
@@ -325,7 +341,95 @@ you have a string which you want to turn into a qualified symbol, you call
   (defun aeon/module-qualified-symbol (module sym)
     "Returns an interned symbol following the naming convention
     module-name/symbol for the given module"
-    (intern (string-join (list module sym) "/")))
+    (intern (string-join (list (if (symbolp module)
+                                   (symbol-name module)
+                                 module)
+                               sym) "/")))
+#+END_SRC
+
+** Load Required Modules
+Before any user-specific configuration is loaded, a couple of required modules
+need to be loaded which provide basic functionality for the config. In the case
+that one of the modules or the user initialization/configuration errors, Emacs
+still needs to be useful to fix that problem.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref load-required-modules
+  (aeon/load-modules '("aeon-bootstrap"
+                       "aeon-core"
+                       "emacs-lisp"))
+#+END_SRC
+
+
+* Load User Config
+:PROPERTIES:
+:header-args: :noweb no-export :tangle no
+:END:
+The user has to be able to tell AEON what modules to load and give it any
+user-specific configurations necessary for their workflow. After loading and
+tangling the config, the user's initialization code is run, followed by module
+loading code, and finally user configuration is run.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref load-user-config
+  <<retrieve-and-tangle-user-config>>
+
+  <<declare-required-vars>>
+
+  (aeon/user-init)
+  <<load-modules>>
+  (aeon/user-config)
+#+END_SRC
+
+** Module Loading
+Once we've loaded the user's configuration file, the variable
+~aeon/modules~ becomes available to us, which we can use for
+conveniently loading all the modules which are in the user's config.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref load-modules
+  (aeon/load-modules aeon/modules)
+#+END_SRC
+
+** Tangle User Config
+Tangling and compiling the user config is necessary to gain access to the
+functions declared in it, so that's done here.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref retrieve-and-tangle-user-config
+  (defvar aeon//user-config-directory
+    (expand-file-name ".aeon.d/")
+    "User's AEON configuration directory")
+
+  (defvar aeon//user-config-file
+    (if (and (file-exists-p aeon//user-config-directory)
+             (directory-name-p aeon//user-config-directory))
+        (expand-file-name "config.org" aeon//user-config-directory)
+      (expand-file-name "aeon.org"))
+    "User's AEON configuration file")
+
+  (defvar aeon//user-config-file-compiled
+    (expand-file-name "config.elc" aeon//user-config-directory)
+    "File to save AEON's tangled user configuration file to")
+
+  (if (file-newer-than-file-p aeon//user-config-file
+                              aeon//user-config-file-compiled)
+      (progn
+        (byte-compile-file
+         (car (org-babel-tangle-file aeon//user-config-file))
+         t))
+    (load-file aeon//user-config-file-compiled))
+#+END_SRC
+
+** Declare Required Vars
+When compiling a file, emacs lisp requires that all the vars
+referenced exist at compile time, unless they have been declared, in
+which case it will allow them to be used regardless. The functions
+~aeon/user-init~, ~aeon/user-config~, and the variable ~aeon/modules~
+have not been defined in this file, and get defined in the user's
+config. As such they have to be declared in order to prevent
+compilation warnings.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref declare-required-vars
+  (declare-function aeon/user-init aeon//user-config-file-compiled ())
+  (declare-function aeon/user-config aeon//user-config-file-compiled ())
+  (defvar aeon/modules)
 #+END_SRC
 
 

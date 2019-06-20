@@ -1,0 +1,10 @@
+#+TITLE:AEON Bootstrapping Module
+#+AUTHOR:Joshua Suskalo
+#+EMAIL:joshua@suskalo.org
+#+STARTUP: indent hidestars
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (defun aeon-bootstrap/init ()
+    ""
+    )
+#+END_SRC
