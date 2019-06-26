@@ -28,32 +28,22 @@
       org-src-fontify-natively t
       org-src-tab-acts-natively t)
 
-;; Check if the literate config has been tangled recently
-(let ((aeon-config (expand-file-name "aeon.org" user-emacs-directory))
-      (aeon-source (expand-file-name "aeon.el" user-emacs-directory)))
-  (when (or
-	 (and (file-exists-p aeon-config)
-	      (file-exists-p aeon-source)
-	      (file-newer-than-file-p
-	       aeon-config
-	       aeon-source))
-	 (not (file-exists-p aeon-source)))
-    (org-babel-tangle-file aeon-config)))
+(defun aeon//load-aeon ()
+  (let ((aeon-compiled (expand-file-name "aeon.elc" user-emacs-directory))
+	(aeon-source (expand-file-name "aeon.el" user-emacs-directory))
+	(aeon-config (expand-file-name "aeon.org" user-emacs-directory)))
+    (when (or (not (file-exists-p aeon-compiled))
+	      (and (file-exists-p aeon-config)
+		   (file-exists-p aeon-compiled)
+		   (file-newer-than-file-p
+		    aeon-config
+		    aeon-compiled)))
+      (org-babel-tangle-file aeon-config)
+      (byte-compile-file aeon-source)
+      (delete-file aeon-source))
+    (load-file aeon-compiled)))
 
-;; Check if the config has been compiled recently
-(let ((aeon-source (expand-file-name "aeon.el" user-emacs-directory))
-      (aeon-compiled (expand-file-name "aeon.elc" user-emacs-directory)))
-  (when (or
-	 (and (file-exists-p aeon-source)
-	      (file-exists-p aeon-compiled)
-	      (file-newer-than-file-p
-	       aeon-source
-	       aeon-compiled))
-	 (not (file-exists-p aeon-compiled)))
-    (byte-compile-file aeon-source)))
-
-;; Load the config
-(load-file (expand-file-name "aeon.elc" user-emacs-directory))
+(aeon//load-aeon)
 
 ;; Disable the debugger now that the config has loaded
 (setq debug-on-error nil)
