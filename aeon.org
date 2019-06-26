@@ -263,13 +263,14 @@ checks to see if there exists an emacs lisp file which is newer than itself. If
 so, the whole thing short-circuits and returns ~t~.
 
 #+BEGIN_SRC emacs-lisp :noweb-ref org-files-are-newer-than-elisp
-  (cl-some (lambda (org-file)
-             (cl-some (lambda (elisp-file)
-                        (file-newer-than-file-p
-                         org-file
-                         elisp-file))
-                      elisp-files))
-           org-files)
+  (or (< (length elisp-files) 1)
+      (cl-some (lambda (org-file)
+                 (cl-some (lambda (elisp-file)
+                            (file-newer-than-file-p
+                             org-file
+                             elisp-file))
+                          elisp-files))
+               org-files))
 #+END_SRC
 
 ****** Tangling and Compiling the Org Files
