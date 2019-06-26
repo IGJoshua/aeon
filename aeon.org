@@ -1,0 +1,450 @@
+#+TITLE:AEON (Another Emacs Operating eNvironment)
+#+AUTHOR:Joshua Suskalo
+#+EMAIL:joshua@suskalo.org
+#+LANGUAGE: en
+#+STARTUP: align indent hidestars
+
+* Introduction
+:PROPERTIES:
+:header-args: :noweb no-export :tangle no
+:END:
+AEON is a literate config for emacs, built around modularity and ease of use.
+Besides some core functionality which is loaded in this file, all functionality
+within AEON is built from modules.  Each module may provide configuration for a
+programming language or software package for emacs, may provide a different way
+of working with a certain type of file, or may have larger, far-reaching effects
+like an =evil= module which would change the behavior of most other modules by
+adding vim emulation and bindings.
+
+We start with bootstrapping the package manager and some core emacs settings
+which are used throughout the config, and then from there initialize the module
+systems, load in configuration and modules requested by the user, before finally
+allowing user customizations to persist between runs of emacs.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  <<bootstrap-aeon>>
+  <<aeon-utility-functions>>
+
+  <<bootstrap-module-loading>>
+
+  <<load-required-modules>>
+
+  <<load-user-config>>
+
+  <<load-emacs-custom-file>>
+#+END_SRC
+
+
+* Bootstrapping
+:PROPERTIES:
+:header-args: :noweb no-export :tangle no
+:END:
+In order to bootstrap AEON, we first have to change some default settings from
+emacs which might get in our way, and then we initialize the core packages which
+are used throughout the rest of AEON.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref bootstrap-aeon
+  <<core-emacs-configuration>>
+  <<load-bootstrap-packages>>
+#+END_SRC
+
+** Core Appearance and Usability
+When setting up some of the core configuration of AEON, we start by disabling
+some features in Emacs which are enabled by default, and then enable UTF-8
+support. Next we configure the embedded lisp interpreter to fit better with
+modern hardware.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref core-emacs-configuration
+  <<disable-unnecessary-default-features>>
+  <<enable-utf8-support>>
+  <<configure-elisp-interpreter>>
+#+END_SRC
+*** Disable Unnecessary Features
+Emacs comes filled with some features which are simply unneccessary for most
+people's workflows, many of which are just plain ugly. All of these features are
+disabled here. If someone really wants to use them, they can enable them again
+in their own config at a later date.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref disable-unnecessary-default-features
+  (when (functionp 'tool-bar-mode)
+    (tool-bar-mode -1))
+  (when (functionp 'menu-bar-mode)
+    (menu-bar-mode -1))
+  (when (functionp 'scroll-bar-mode)
+    (scroll-bar-mode -1))
+  (when (functionp 'horizontal-scroll-bar-mode)
+    (horizontal-scroll-bar-mode -1))
+  (when (functionp 'mouse-wheel-mode)
+    (mouse-wheel-mode -1))
+  (when (functionp 'tooltip-mode)
+    (tooltip-mode -1))
+  (when (functionp 'blink-cursor-mode)
+    (blink-cursor-mode -1))
+
+  (setq ring-bell-function (lambda ())
+        inhibit-startup-screen t
+        frame-resize-pixelwise t)
+#+END_SRC
+*** Enable UTF-8 Support
+Emacs is a very old text editor, and doesn't come with UTF-8 support
+pre-enabled.  UTF-8 is rather important to modern file editing however, so AEON
+enables it by default.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref enable-utf8-support
+  (set-charset-priority 'unicode)
+  (set-default-coding-systems 'utf-8)
+  (set-terminal-coding-system 'utf-8)
+  (set-keyboard-coding-system 'utf-8)
+  (set-selection-coding-system 'utf-8)
+  (prefer-coding-system 'utf-8)
+  (setq default-process-coding-system '(utf-8-unix . utf-8-unix))
+#+END_SRC
+*** Configure the Emacs Lisp Interpreter
+The emacs lisp interpreter has many default settings which are out of date for
+modern computers.  The garbage collector doesn't need to be run as often as the
+default, the message buffer can have a lot more messages in it, and cl features
+should be loaded.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref configure-elisp-interpreter
+  (require 'cl-lib)
+
+  (setq message-log-max 16384
+        gc-cons-threshold (* 50 1024 1024)
+        jit-lock-stealth-time 1
+        jit-lock-stealth-verbose nil)
+#+END_SRC
+** Load Bootstrap Packages
+In order to bootstrap AEON fully, we need the package manager fully configured.
+A small amount of configuration happens before this config is loaded, in which
+straight.el is installed and then is used to get the latest version of org,
+which is then used to load this config. However, throughout the rest of this
+config and in any modules, the desired interface is use-package, so that will be
+loaded first, to make loading the other packages for bootstrapping consistent.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref load-bootstrap-packages
+  <<use-package-configuration>>
+#+END_SRC
+*** Use-package Installation and Configuration
+straight.el is the package manager used by AEON, but use-package provides a
+great interface to many package managers, and is familiar to many Emacs users,
+so it will be installed here to be used as the primary way of loading packages
+in AEON, at least under the hood.
+
+First AEON installs use-package, then we configure use-package to always use
+straight.el by default.
+#+BEGIN_SRC emacs-lisp :noweb-ref use-package-configuration
+  (straight-use-package 'use-package)
+  (setq straight-use-package-by-default t)
+#+END_SRC
+
+
+* Modules
+:PROPERTIES:
+:header-args: :noweb no-export :tangle no
+:END:
+Modules are the units of configuration in AEON. They are used to declare
+packages which should be installed into the emacs distrobution, they create
+initialization code to setup the initial state needed for those packages, they
+configure those packages once loaded, and finally they may declare additional
+functionality which can be used to interact with those packages without
+modifying them.
+
+** Packages
+Packages are loaded with straight.el to allow for proper handling of
+installation and modifications of packages that become necessary, as well as
+configuration. A package can be declared as a depencency for multiple modules,
+and each module can define its own set of initialization and configuration
+steps.  It is undefined behavior for multiple modules to configure the same
+thing, unless a configuration module is present which overrides both.
+
+** Configuration Modules
+Configuration Modules are special modules which generally do not declare any
+package dependencies.  They however do declare dependencies on multiple modules,
+and upon being loaded will override any functionality which would have been
+conflicting between the two other modules. This allows for a single place to
+resolve conflicts between multiple configurations.
+
+** Loading Modules
+Module loading is done through the function ~aeon/load-module~, and can be
+performed either through code, or interactively. First the code for the module
+is loaded, and then the initialization step occurs.
+
+If multiple modules are to be loaded at once, a single call to
+~aeon/load-modules~ works as well, although because this function takes a list
+it cannot be used interactively.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref bootstrap-module-loading
+  (defun aeon/load-module (module-name)
+    "Loads a module of the given name from \"emacs-home/modules/module-name/\".
+
+  This includes checking if there has been an update to the org files since the last time
+  the elisp had been tangled, tangling it if so, compiling it, and then loading it."
+    (interactive "sName of the module you wish to load: ")
+    <<load-module>>
+    <<initialize-module>>
+    )
+
+  (defun aeon/load-modules (module-names)
+    "Loads a list of modules using aeon/load-module"
+    (dolist (module-name module-names)
+      (aeon/load-module module-name)))
+#+END_SRC
+
+*** Load the Module
+For now, loading a module is a simple task, because the module format hasn't
+been defined yet. That means right now the only tasks which must take place are
+to find the module, tangle the org file, compile the elisp, and load the
+compiled files.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref load-module
+  (let ((module-directory
+         <<get-module-directory>>
+         ))
+    (if (file-directory-p module-directory)
+        (let ((elisp-files (directory-files-recursively module-directory
+                                                        ".*\\.elc$"))
+
+              (org-files (directory-files-recursively module-directory
+                                                      ".*\\.org$")))
+          (if (< (length org-files) 1)
+              (message "No files found in the module. Time to write some code!")
+            <<tangle-and-load-module-elisp>>
+            ))
+      (message "Not a valid module name.")))
+#+END_SRC
+
+**** Get the Module's Directory
+The directory for a module is generated as a concatonation of the user's emacs
+directory, the name for the module directory, and the name of the module which
+is being loaded. Together, that may look something like so:
+=~/.emacs.d/modules/module-name/=
+
+#+BEGIN_SRC emacs-lisp :noweb-ref get-module-directory
+  (string-join (list user-emacs-directory
+                     "modules"
+                     (if (symbolp module-name)
+                         (symbol-name module-name)
+                       module-name)
+                     "")
+               "/")
+#+END_SRC
+
+**** Load the Module's Emacs Lisp Code
+Once a module's files have been found, we need to load them. To do so, we first
+need to tangle the elisp and compile them into =.elc= files, and then we load
+them.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref tangle-and-load-module-elisp
+  (let ((elc-files ()))
+    <<tangle-elisp-and-push-to-elc-files>>
+    <<load-elc-files>>
+    )
+#+END_SRC
+
+***** Tangle Emacs Lisp Files
+When we tangle the elisp files and compile them to =.elc= files, it can be
+somewhat resource intensive. Instead of always performing that step, we can
+check to see if the org files have more recent changes than the compiled lisp,
+and if they do, then we will tangle and compile them. Otherwise, we can simply
+pretend that we compiled them, and push the old elisp into the list.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref tangle-elisp-and-push-to-elc-files
+  (if
+      <<org-files-are-newer-than-elisp>>
+      <<tangle-and-compile-org-files--push-compiled-file-names-to-elc-files>>
+    <<push-existing-elisp-files-to-elc-files>>
+    )
+#+END_SRC
+
+****** Checking if Org files are newer than their matching Emacs Lisp
+To check if the org files are newer, we make use of the CL library for emacs,
+which allows us the use of the excellent ~some~ function. For each org file, it
+checks to see if there exists an emacs lisp file which is newer than itself. If
+so, the whole thing short-circuits and returns ~t~.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref org-files-are-newer-than-elisp
+  (or (< (length elisp-files) 1)
+      (cl-some (lambda (org-file)
+                 (cl-some (lambda (elisp-file)
+                            (file-newer-than-file-p
+                             org-file
+                             elisp-file))
+                          elisp-files))
+               org-files))
+#+END_SRC
+
+****** Tangling and Compiling the Org Files
+To tangle and compile the org files, we loop through each org file and call the
+elisp function ~org-babel-tangle-file~ on it. That will return a list of the
+emacs lisp files which have been tangled from it. We then loop over each file
+which was tangled from the module and compile it, pushing the name of the
+compiled file into the variable ~elc-files~. Since the elisp files are transient
+and are not intended to be evaluated directly, we remove them right after
+compiling them.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref tangle-and-compile-org-files--push-compiled-file-names-to-elc-files
+  (dolist (org-file org-files)
+    (dolist (elisp-file (org-babel-tangle-file org-file))
+      (byte-compile-file elisp-file)
+      (push (string-join (list elisp-file "c")) elc-files)))
+#+END_SRC
+
+****** Push Existing Emacs Lisp Files to ~elc-files~
+If the elisp files are newer than the org ones, they don't need to be
+re-compiled, so as a result we just add the already-existing elisp files to the
+list.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref push-existing-elisp-files-to-elc-files
+  (dolist (file elisp-files)
+    (push file elc-files))
+#+END_SRC
+
+***** Load Emacs Lisp Files
+Once all the files have been pushed into the list, we can go through each of
+them and load them into emacs.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref load-elc-files
+  (dolist (elc-file elc-files)
+    (load-file elc-file))
+#+END_SRC
+
+*** Initialize the Module
+Modules are defined with three special functions: ~init~, ~package~, and
+~config~. These functions are called in order on module load, with ~init~ taking
+place before any packages are loaded, ~package~ performing all the ~use-package~
+calls, and ~config~ going back and configuring each package. If any of these
+functions doesn't exist, they are simply skipped.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref initialize-module
+  (let ((init (symbol-function
+               (aeon/module-qualified-symbol module-name "init")))
+        (package (symbol-function
+                  (aeon/module-qualified-symbol module-name "package")))
+        (config (symbol-function
+                 (aeon/module-qualified-symbol module-name "config"))))
+    (when init
+      (funcall init))
+    (when package
+      (funcall package))
+    (when config
+      (funcall config)))
+#+END_SRC
+
+**** Module-Qualified Symbols
+Any symbols which are specific to a particular module, and are not from a
+package, should follow the module symbol convention, namely to be of the form
+~module-name/symbol~. This is already followed with AEON's core module, ~aeon~,
+and it helps prevent any naming collisions which might take place in future. If
+you have a string which you want to turn into a qualified symbol, you call
+~aeon/module-qualified-symbol~ which returns the interned symbol.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref aeon-utility-functions
+  (defun aeon/module-qualified-symbol (module sym)
+    "Returns an interned symbol following the naming convention
+    module-name/symbol for the given module"
+    (intern (string-join (list (if (symbolp module)
+                                   (symbol-name module)
+                                 module)
+                               sym) "/")))
+#+END_SRC
+
+** Load Required Modules
+Before any user-specific configuration is loaded, a couple of required modules
+need to be loaded which provide basic functionality for the config. In the case
+that one of the modules or the user initialization/configuration errors, Emacs
+still needs to be useful to fix that problem.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref load-required-modules
+  (aeon/load-modules '("aeon-bootstrap"
+                       "aeon-core"
+                       "emacs-lisp"))
+#+END_SRC
+
+
+* Load User Config
+:PROPERTIES:
+:header-args: :noweb no-export :tangle no
+:END:
+The user has to be able to tell AEON what modules to load and give it any
+user-specific configurations necessary for their workflow. After loading and
+tangling the config, the user's initialization code is run, followed by module
+loading code, and finally user configuration is run.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref load-user-config
+  <<retrieve-and-tangle-user-config>>
+
+  <<declare-required-vars>>
+
+  (aeon/user-init)
+  <<load-modules>>
+  (aeon/user-config)
+#+END_SRC
+
+** Module Loading
+Once we've loaded the user's configuration file, the variable
+~aeon/modules~ becomes available to us, which we can use for
+conveniently loading all the modules which are in the user's config.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref load-modules
+  (aeon/load-modules aeon/modules)
+#+END_SRC
+
+** Tangle User Config
+Tangling and compiling the user config is necessary to gain access to the
+functions declared in it, so that's done here.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref retrieve-and-tangle-user-config
+  (defvar aeon//user-config-directory
+    (expand-file-name ".aeon.d/")
+    "User's AEON configuration directory")
+
+  (defvar aeon//user-config-file
+    (if (and (file-exists-p aeon//user-config-directory)
+             (directory-name-p aeon//user-config-directory))
+        (expand-file-name "config.org" aeon//user-config-directory)
+      (expand-file-name "aeon.org"))
+    "User's AEON configuration file")
+
+  (defvar aeon//user-config-file-compiled
+    (expand-file-name "config.elc" aeon//user-config-directory)
+    "File to save AEON's tangled user configuration file to")
+
+  (if (file-newer-than-file-p aeon//user-config-file
+                              aeon//user-config-file-compiled)
+      (progn
+        (byte-compile-file
+         (car (org-babel-tangle-file aeon//user-config-file))
+         t))
+    (load-file aeon//user-config-file-compiled))
+#+END_SRC
+
+** Declare Required Vars
+When compiling a file, emacs lisp requires that all the vars
+referenced exist at compile time, unless they have been declared, in
+which case it will allow them to be used regardless. The functions
+~aeon/user-init~, ~aeon/user-config~, and the variable ~aeon/modules~
+have not been defined in this file, and get defined in the user's
+config. As such they have to be declared in order to prevent
+compilation warnings.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref declare-required-vars
+  (declare-function aeon/user-init aeon//user-config-file-compiled ())
+  (declare-function aeon/user-config aeon//user-config-file-compiled ())
+  (defvar aeon/modules)
+#+END_SRC
+
+
+* Load Emacs Custom File
+Emacs includes a way to customize large portions of the behaviors that come
+default from within itself, handled from within the custom file.  Any changes
+that the user makes through the customize interface will be saved to the custom
+file, and the configuration has the option to load that file.  Emacs' default
+behavior is to append all custom information to the end of the init.el file,
+however since this is a literate config, that is less than desireable. Instead
+we will set a specific file to be used, and load it if it exists.
+#+BEGIN_SRC emacs-lisp :noweb-ref load-emacs-custom-file
+  (setq custom-file (expand-file-name ".custom.el" user-emacs-directory))
+
+  (when (file-exists-p custom-file)
+    (load-file custom-file))
+#+END_SRC

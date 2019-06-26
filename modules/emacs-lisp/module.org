@@ -1,0 +1,10 @@
+#+TITLE:Emacs Lisp Module
+#+AUTHOR:Joshua Suskalo
+#+EMAIL:joshua@suskalo.org
+#+LANGUAGE: en
+#+STARTUP: align indent hidestars
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (defun emacs-lisp/init ()
+    )
+#+END_SRC
