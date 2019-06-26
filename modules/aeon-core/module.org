@@ -4,7 +4,7 @@
 #+LANGUAGE: en
 #+STARTUP: align indent hidestars
 
-#+BEGIN_SRC emacs-lisp :tangle yes :var ls=named-list
+#+BEGIN_SRC emacs-lisp :tangle yes
   (defun aeon-core/init ()
     )
 #+END_SRC
