@@ -1,0 +1,10 @@
+#+TITLE:Magit
+#+AUTHOR:Joshua Suskalo
+#+EMAIL:joshua@suskalo.org
+#+LANGUAGE: en
+#+STARTUP: align indent hidestars
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (defun magit/init ()
+    (use-package magit))
+#+END_SRC
