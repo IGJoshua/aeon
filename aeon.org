@@ -220,7 +220,7 @@ is being loaded. Together, that may look something like so:
 =~/.emacs.d/modules/module-name/=
 
 #+BEGIN_SRC emacs-lisp :noweb-ref get-module-directory
-  (string-join (list user-emacs-directory
+  (string-join (list (directory-file-name user-emacs-directory)
                      "modules"
                      (if (symbolp module-name)
                          (symbol-name module-name)
