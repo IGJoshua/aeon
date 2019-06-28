@@ -3,8 +3,8 @@
 ;;; Tangles the aeon.org file in the emacs directory and loads it
 
 ;; Enable the debugger to allow debugging the config
-(setq debug-on-error t)
-(setq debug-on-quit t)
+;;(setq debug-on-error t)
+;;(setq debug-on-quit t)
 
 ;; Bootstrap straight.el
 (defvar bootstrap-version)
@@ -39,12 +39,11 @@
 		    aeon-config
 		    aeon-compiled)))
       (org-babel-tangle-file aeon-config)
-      (byte-compile-file aeon-source)
-      (delete-file aeon-source))
+      (byte-compile-file aeon-source))
     (load-file aeon-compiled)))
 
 (aeon//load-aeon)
 
 ;; Disable the debugger now that the config has loaded
-(setq debug-on-error nil)
-(setq debug-on-quit nil)
+;;(setq debug-on-error nil)
+;;(setq debug-on-quit nil)

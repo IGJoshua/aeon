@@ -220,7 +220,7 @@ is being loaded. Together, that may look something like so:
 =~/.emacs.d/modules/module-name/=
 
 #+BEGIN_SRC emacs-lisp :noweb-ref get-module-directory
-  (string-join (list user-emacs-directory
+  (string-join (list (directory-file-name user-emacs-directory)
                      "modules"
                      (if (symbolp module-name)
                          (symbol-name module-name)
@@ -285,7 +285,12 @@ compiling them.
 #+BEGIN_SRC emacs-lisp :noweb-ref tangle-and-compile-org-files--push-compiled-file-names-to-elc-files
   (dolist (org-file org-files)
     (dolist (elisp-file (org-babel-tangle-file org-file))
-      (byte-compile-file elisp-file)
+      (let ((byte-compile-warnings (if (sequencep byte-compile-warnings)
+                                       (copy-sequence byte-compile-warnings)
+                                     t)))
+        (byte-compile-disable-warning 'free-vars)
+        (byte-compile-disable-warning 'unresolved)
+        (byte-compile-file elisp-file))
       (push (string-join (list elisp-file "c")) elc-files)))
 #+END_SRC
 
