@@ -39,8 +39,7 @@
 		    aeon-config
 		    aeon-compiled)))
       (org-babel-tangle-file aeon-config)
-      (byte-compile-file aeon-source)
-      (delete-file aeon-source))
+      (byte-compile-file aeon-source))
     (load-file aeon-compiled)))
 
 (aeon//load-aeon)
