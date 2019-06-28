@@ -5,6 +5,6 @@
 #+STARTUP: align indent hidestars
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  (defun magit/init ()
+  (defun magit/package ()
     (use-package magit))
 #+END_SRC

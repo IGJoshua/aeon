@@ -5,10 +5,7 @@
 #+STARTUP: align indent hidestars
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  (defvar doom-themes-enable-bold)
-  (defvar doom-themes-enable-italic)
-
-  (defun doom-themes/init ()
+  (defun doom-themes/package ()
     (use-package doom-themes
       :config
       (setq doom-themes-enable-bold t
